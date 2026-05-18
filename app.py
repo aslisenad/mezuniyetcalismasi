@@ -13,7 +13,7 @@ note_duration = 0.4
 cutoff = 1000
 
 st.set_page_config(page_title="FFT Melodi Analizi", layout="centered")
-st.title("🎵 FFT Melodi Karşılaştırma Uygulaması")
+st.title("🎵 FFT Melodi Karşılaştırma")
 
 # -------------------
 # MELODİ ÜRETİMİ
@@ -55,9 +55,7 @@ Y_filtered[np.abs(freq) > cutoff] = 0
 hard_filtered = np.real(ifft(Y_filtered))
 hard_filtered = hard_filtered / np.max(np.abs(hard_filtered))
 
-# -------------------
 # FFT helper
-# -------------------
 def get_fft(signal):
     Y = fft(signal)
     return freq[:N // 2], np.abs(Y[:N // 2]) / N
@@ -67,76 +65,51 @@ f_hard, m_hard = get_fft(hard)
 f_filt, m_filt = get_fft(hard_filtered)
 
 # -------------------
-# GRAFİK
-# -------------------
-st.subheader("📊 FFT Karşılaştırma Grafiği")
-
-fig, ax = plt.subplots(figsize=(8, 4))
-
-ax.plot(f_soft, m_soft, label="Yumuşak Melodi", color="blue")
-ax.plot(f_hard, m_hard, label="Sert Melodi", color="red", alpha=0.7)
-ax.plot(f_filt, m_filt, label="Filtrelenmiş Sert Melodi", color="green")
-
-ax.axvline(cutoff, color="black", linestyle="--", label="Cutoff = 1000 Hz")
-
-ax.set_xlim(0, 2500)
-ax.set_xlabel("Frekans (Hz)")
-ax.set_ylabel("Genlik")
-ax.set_title("FFT Karşılaştırması")
-ax.legend()
-ax.grid(True)
-
-st.pyplot(fig)
-
-# -------------------
-# AUDIO EXPORT
+# AUDIO SAVE
 # -------------------
 def save_audio(data):
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
     sf.write(tmp.name, data, fs)
     return tmp.name
 
-st.subheader("🔊 Sesler")
+# -------------------
+# 1. BLOK - YUMUŞAK
+# -------------------
+st.markdown("## 🎵 Yumuşak Melodi")
 
-col1, col2, col3 = st.columns(3)
+fig1, ax1 = plt.subplots(figsize=(8, 3))
+ax1.plot(f_soft, m_soft, color="blue")
+ax1.set_title("Yumuşak FFT")
+ax1.set_xlim(0, 2500)
+ax1.grid(True)
 
-with col1:
-    st.write("Yumuşak")
-    st.audio(save_audio(soft))
-
-with col2:
-    st.write("Sert")
-    st.audio(save_audio(hard))
-
-with col3:
-    st.write("Filtrelenmiş")
-    st.audio(save_audio(hard_filtered))
+st.pyplot(fig1)
+st.audio(save_audio(soft))
 
 # -------------------
-# ANİMASYON (STREAMLIT VERSION)
+# 2. BLOK - SERT
 # -------------------
-st.subheader("🎞️ FFT Değişim Görselleştirme")
+st.markdown("## 🔊 Sert Melodi")
 
-fig2, ax2 = plt.subplots(figsize=(8, 4))
-
-data = [
-    (f_soft, m_soft, "Yumuşak", "blue"),
-    (f_hard, m_hard, "Sert", "red"),
-    (f_filt, m_filt, "Filtrelenmiş", "green"),
-]
-
-choice = st.selectbox("Görselleştir:", ["Yumuşak", "Sert", "Filtrelenmiş"])
-
-if choice == "Yumuşak":
-    x, y = f_soft, m_soft
-elif choice == "Sert":
-    x, y = f_hard, m_hard
-else:
-    x, y = f_filt, m_filt
-
-ax2.plot(x, y, color="purple")
+fig2, ax2 = plt.subplots(figsize=(8, 3))
+ax2.plot(f_hard, m_hard, color="red")
+ax2.set_title("Sert FFT")
 ax2.set_xlim(0, 2500)
-ax2.set_title(f"{choice} FFT")
 ax2.grid(True)
 
 st.pyplot(fig2)
+st.audio(save_audio(hard))
+
+# -------------------
+# 3. BLOK - FİLTRELİ
+# -------------------
+st.markdown("## 🎧 Filtrelenmiş Melodi")
+
+fig3, ax3 = plt.subplots(figsize=(8, 3))
+ax3.plot(f_filt, m_filt, color="green")
+ax3.set_title("Filtrelenmiş FFT")
+ax3.set_xlim(0, 2500)
+ax3.grid(True)
+
+st.pyplot(fig3)
+st.audio(save_audio(hard_filtered))
