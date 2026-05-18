@@ -13,7 +13,7 @@ note_duration = 0.4
 cutoff = 1000
 
 st.set_page_config(page_title="FFT Melodi Analizi", layout="centered")
-st.title("🎵 FFT Melodi Karşılaştırma")
+st.title("🎵 FFT Melodi Karşılaştırma Uygulaması")
 
 # -------------------
 # MELODİ ÜRETİMİ
@@ -55,7 +55,6 @@ Y_filtered[np.abs(freq) > cutoff] = 0
 hard_filtered = np.real(ifft(Y_filtered))
 hard_filtered = hard_filtered / np.max(np.abs(hard_filtered))
 
-# FFT helper
 def get_fft(signal):
     Y = fft(signal)
     return freq[:N // 2], np.abs(Y[:N // 2]) / N
@@ -65,16 +64,38 @@ f_hard, m_hard = get_fft(hard)
 f_filt, m_filt = get_fft(hard_filtered)
 
 # -------------------
-# AUDIO SAVE
+# AUDIO
 # -------------------
 def save_audio(data):
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
     sf.write(tmp.name, data, fs)
     return tmp.name
 
-# -------------------
-# 1. BLOK - YUMUŞAK
-# -------------------
+# =========================================================
+# 🔥 BAŞTAKİ BÜYÜK KARŞILAŞTIRMA GRAFİĞİ
+# =========================================================
+st.markdown("## 📊 Genel FFT Karşılaştırma Grafiği")
+
+fig0, ax0 = plt.subplots(figsize=(8, 4))
+
+ax0.plot(f_soft, m_soft, label="Yumuşak", color="blue")
+ax0.plot(f_hard, m_hard, label="Sert", color="red", alpha=0.7)
+ax0.plot(f_filt, m_filt, label="Filtreli", color="green")
+
+ax0.axvline(cutoff, color="black", linestyle="--", label="Cutoff = 1000 Hz")
+
+ax0.set_xlim(0, 2500)
+ax0.set_xlabel("Frekans (Hz)")
+ax0.set_ylabel("Genlik")
+ax0.set_title("Tüm Melodilerin FFT Karşılaştırması")
+ax0.legend()
+ax0.grid(True)
+
+st.pyplot(fig0)
+
+# =========================================================
+# 🎵 1. BLOK - YUMUŞAK
+# =========================================================
 st.markdown("## 🎵 Yumuşak Melodi")
 
 fig1, ax1 = plt.subplots(figsize=(8, 3))
@@ -86,9 +107,9 @@ ax1.grid(True)
 st.pyplot(fig1)
 st.audio(save_audio(soft))
 
-# -------------------
-# 2. BLOK - SERT
-# -------------------
+# =========================================================
+# 🔊 2. BLOK - SERT
+# =========================================================
 st.markdown("## 🔊 Sert Melodi")
 
 fig2, ax2 = plt.subplots(figsize=(8, 3))
@@ -100,9 +121,9 @@ ax2.grid(True)
 st.pyplot(fig2)
 st.audio(save_audio(hard))
 
-# -------------------
-# 3. BLOK - FİLTRELİ
-# -------------------
+# =========================================================
+# 🎧 3. BLOK - FİLTRELİ
+# =========================================================
 st.markdown("## 🎧 Filtrelenmiş Melodi")
 
 fig3, ax3 = plt.subplots(figsize=(8, 3))
