@@ -13,11 +13,11 @@ fs = 44100
 note_duration = 0.4
 cutoff = 1000
 
-st.set_page_config(page_title="FFT + Image + Audio", layout="centered")
-st.title("🎵 FFT + 🖼️ Görüntü + 🔊 Ses Analizi")
+st.set_page_config(page_title="FFT Proje", layout="centered")
+st.title("🎵 FFT + Ses + Görüntü Analizi")
 
 # =========================================================
-# 🎵 SES KISMI
+# 🎵 SES ÜRETİMİ
 # =========================================================
 notes = [440, 494, 523, 587, 659, 587, 523, 494, 440]
 
@@ -58,22 +58,97 @@ def save_audio(data):
     sf.write(tmp.name, data, fs)
     return tmp.name
 
+def get_fft(signal):
+    Y = fft(signal)
+    return freq[:N // 2], np.abs(Y[:N // 2]) / N
+
+f_soft, m_soft = get_fft(soft)
+f_hard, m_hard = get_fft(hard)
+f_filt, m_filt = get_fft(hard_filtered)
+
 # =========================================================
-# 🖼️ GÖRSEL FFT KISMI
+# 📊 1) GENEL GRAFİK (EN ÜST)
+# =========================================================
+st.markdown("## 📊 Genel FFT Karşılaştırma")
+
+fig0, ax0 = plt.subplots(figsize=(7, 3.5))
+
+ax0.plot(f_soft, m_soft, label="Yumuşak", color="blue")
+ax0.plot(f_hard, m_hard, label="Sert", color="red", alpha=0.7)
+ax0.plot(f_filt, m_filt, label="Filtreli", color="green")
+
+ax0.axvline(cutoff, color="black", linestyle="--", label="Cutoff")
+
+ax0.set_xlim(0, 2500)
+ax0.set_title("Tüm Sesler FFT")
+ax0.legend()
+ax0.grid(True)
+
+st.pyplot(fig0)
+
+# =========================================================
+# 🎵 2) 3 BLOK: GRAFİK + SES
+# =========================================================
+
+st.markdown("## 🎵 Ses Analizi")
+
+# -------------------
+# YUMUŞAK
+# -------------------
+st.markdown("### 🎵 Yumuşak Melodi")
+
+fig1, ax1 = plt.subplots(figsize=(7, 3))
+ax1.plot(f_soft, m_soft, color="blue")
+ax1.set_xlim(0, 2500)
+ax1.set_title("Yumuşak FFT")
+ax1.grid(True)
+
+st.pyplot(fig1)
+st.audio(save_audio(soft))
+
+# -------------------
+# SERT
+# -------------------
+st.markdown("### 🔊 Sert Melodi")
+
+fig2, ax2 = plt.subplots(figsize=(7, 3))
+ax2.plot(f_hard, m_hard, color="red")
+ax2.set_xlim(0, 2500)
+ax2.set_title("Sert FFT")
+ax2.grid(True)
+
+st.pyplot(fig2)
+st.audio(save_audio(hard))
+
+# -------------------
+# FİLTRELİ
+# -------------------
+st.markdown("### 🎧 Filtrelenmiş Melodi")
+
+fig3, ax3 = plt.subplots(figsize=(7, 3))
+ax3.plot(f_filt, m_filt, color="green")
+ax3.set_xlim(0, 2500)
+ax3.set_title("Filtrelenmiş FFT")
+ax3.grid(True)
+
+st.pyplot(fig3)
+st.audio(save_audio(hard_filtered))
+
+# =========================================================
+# 🖼️ 3) GÖRÜNTÜ FFT (EN ALT)
 # =========================================================
 st.markdown("## 🖼️ Görüntü FFT Analizi")
 
-uploaded = st.file_uploader("Bir görsel yükle (jpg/png)", type=["jpg", "png"])
+uploaded = st.file_uploader("Görsel yükle", type=["jpg", "png"])
 
-radius = st.slider("Low/High Pass Radius", 5, 150, 45)
+radius = st.slider("Radius", 5, 150, 45)
 
 if uploaded is not None:
     image_rgb = io.imread(uploaded)
 else:
-    st.info("Varsayılan görsel kullanılıyor (ataturk.jpg)")
+    st.info("Varsayılan görsel kullanılıyor")
     image_rgb = io.imread("ataturk.jpg")
 
-# gri
 if image_rgb.ndim == 3:
     image_gray = color.rgb2gray(image_rgb)
 else:
@@ -81,7 +156,6 @@ else:
 
 image = img_as_float(image_gray)
 
-# FFT 2D
 F = fft2(image)
 F_shifted = fftshift(F)
 
@@ -91,27 +165,23 @@ crow, ccol = rows // 2, cols // 2
 Y, X = np.ogrid[:rows, :cols]
 distance = np.sqrt((X - ccol)**2 + (Y - crow)**2)
 
-# dropdown
 islem = st.selectbox(
-    "İşlem seç",
-    [
-        "Orijinal",
-        "FFT Spektrumu",
-        "Low-Pass Spektrumu",
-        "Low-Pass Sonuç",
-        "High-Pass Spektrumu",
-        "High-Pass Sonuç"
-    ]
+    "İşlem",
+    ["Orijinal", "FFT", "Low-Pass", "High-Pass", "Low-Pass Sonuç", "High-Pass Sonuç"]
 )
 
 if islem == "Orijinal":
     result = image
 
-elif islem == "FFT Spektrumu":
+elif islem == "FFT":
     result = np.log(1 + np.abs(F_shifted))
 
-elif islem == "Low-Pass Spektrumu":
+elif islem == "Low-Pass":
     mask = distance <= radius
+    result = np.log(1 + np.abs(F_shifted * mask))
+
+elif islem == "High-Pass":
+    mask = distance > radius
     result = np.log(1 + np.abs(F_shifted * mask))
 
 elif islem == "Low-Pass Sonuç":
@@ -119,37 +189,13 @@ elif islem == "Low-Pass Sonuç":
     img = np.real(ifft2(ifftshift(F_shifted * mask)))
     result = (img - img.min()) / (img.max() - img.min())
 
-elif islem == "High-Pass Spektrumu":
-    mask = distance > radius
-    result = np.log(1 + np.abs(F_shifted * mask))
-
 elif islem == "High-Pass Sonuç":
     mask = distance > radius
     img = np.real(ifft2(ifftshift(F_shifted * mask)))
     result = (img - img.min()) / (img.max() - img.min())
 
-fig, ax = plt.subplots(figsize=(6, 6))
+fig, ax = plt.subplots(figsize=(4, 4))
 ax.imshow(result, cmap="gray")
-ax.set_title(islem)
 ax.axis("off")
 
 st.pyplot(fig)
-
-# =========================================================
-# 🎵 SES BLOKLARI (3 SES)
-# =========================================================
-st.markdown("## 🔊 Ses Analizi")
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.write("Yumuşak")
-    st.audio(save_audio(soft))
-
-with col2:
-    st.write("Sert")
-    st.audio(save_audio(hard))
-
-with col3:
-    st.write("Filtrelenmiş")
-    st.audio(save_audio(hard_filtered))
