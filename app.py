@@ -67,7 +67,7 @@ f_hard, m_hard = get_fft(hard)
 f_filt, m_filt = get_fft(hard_filtered)
 
 # =========================================================
-# 📊 1) GENEL GRAFİK (EN ÜST)
+# 📊 GENEL GRAFİK
 # =========================================================
 st.markdown("## 📊 Genel FFT Karşılaştırma")
 
@@ -87,60 +87,40 @@ ax0.grid(True)
 st.pyplot(fig0)
 
 # =========================================================
-# 🎵 2) 3 BLOK: GRAFİK + SES
+# 🎵 SES BLOKLARI
 # =========================================================
-
 st.markdown("## 🎵 Ses Analizi")
 
-# -------------------
-# YUMUŞAK
-# -------------------
-st.markdown("### 🎵 Yumuşak Melodi")
-
+st.markdown("### 🎵 Yumuşak")
 fig1, ax1 = plt.subplots(figsize=(7, 3))
 ax1.plot(f_soft, m_soft, color="blue")
 ax1.set_xlim(0, 2500)
-ax1.set_title("Yumuşak FFT")
 ax1.grid(True)
-
 st.pyplot(fig1)
 st.audio(save_audio(soft))
 
-# -------------------
-# SERT
-# -------------------
-st.markdown("### 🔊 Sert Melodi")
-
+st.markdown("### 🔊 Sert")
 fig2, ax2 = plt.subplots(figsize=(7, 3))
 ax2.plot(f_hard, m_hard, color="red")
 ax2.set_xlim(0, 2500)
-ax2.set_title("Sert FFT")
 ax2.grid(True)
-
 st.pyplot(fig2)
 st.audio(save_audio(hard))
 
-# -------------------
-# FİLTRELİ
-# -------------------
-st.markdown("### 🎧 Filtrelenmiş Melodi")
-
+st.markdown("### 🎧 Filtrelenmiş")
 fig3, ax3 = plt.subplots(figsize=(7, 3))
 ax3.plot(f_filt, m_filt, color="green")
 ax3.set_xlim(0, 2500)
-ax3.set_title("Filtrelenmiş FFT")
 ax3.grid(True)
-
 st.pyplot(fig3)
 st.audio(save_audio(hard_filtered))
 
 # =========================================================
-# 🖼️ 3) GÖRÜNTÜ FFT (EN ALT)
+# 🖼️ GÖRSEL FFT (KÜÇÜLTÜLDÜ)
 # =========================================================
 st.markdown("## 🖼️ Görüntü FFT Analizi")
 
 uploaded = st.file_uploader("Görsel yükle", type=["jpg", "png"])
-
 radius = st.slider("Radius", 5, 150, 45)
 
 if uploaded is not None:
@@ -194,8 +174,9 @@ elif islem == "High-Pass Sonuç":
     img = np.real(ifft2(ifftshift(F_shifted * mask)))
     result = (img - img.min()) / (img.max() - img.min())
 
-fig, ax = plt.subplots(figsize=(4, 4))
+# 🔧 KÜÇÜLTÜLMÜŞ GÖRSEL
+fig, ax = plt.subplots(figsize=(2.8, 2.8), dpi=120)
 ax.imshow(result, cmap="gray")
 ax.axis("off")
 
-st.pyplot(fig)
+st.pyplot(fig, use_container_width=False)
