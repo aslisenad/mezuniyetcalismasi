@@ -5,15 +5,26 @@ from scipy.fft import fft, fftfreq, ifft
 import soundfile as sf
 import tempfile
 
+# -------------------
+# Ayarlar
+# -------------------
 fs = 44100
 
-st.title("FFT Müzik Filtreleme Uygulaması")
+st.set_page_config(page_title="FFT Audio Filter", layout="wide")
+st.title("🎵 FFT Ses Filtreleme Uygulaması")
 
-cutoff = st.slider("Cutoff Frekansı", 100, 3000, 800)
+# -------------------
+# UI
+# -------------------
+cutoff = st.slider("Cutoff Frekansı (Hz)", 100, 3000, 800)
 
+st.markdown("### 🎼 Melodi Parametreleri (sabit)")
 notes = [440, 523, 659, 523, 440]
 note_duration = 1
 
+# -------------------
+# Sinyal üretimi
+# -------------------
 signal = np.array([])
 
 for f in notes:
@@ -29,41 +40,66 @@ for f in notes:
 
 signal = signal / np.max(np.abs(signal))
 
+# -------------------
+# FFT
+# -------------------
 N = len(signal)
-
 Y = fft(signal)
 freq = fftfreq(N, 1/fs)
 
+# Low-pass filtre
 Y_filtered = Y.copy()
 Y_filtered[np.abs(freq) > cutoff] = 0
 
-signal_filtered = np.real(ifft(Y_filtered))
+signal_lowpass = np.real(ifft(Y_filtered))
 
-fig, ax = plt.subplots(2,2, figsize=(12,6))
+# High-pass (çıkarılan kısım)
+signal_highpass = signal - signal_lowpass
 
-ax[0,0].plot(signal[:3000])
-ax[0,0].set_title("Orijinal")
+# -------------------
+# Grafikler
+# -------------------
+fig, ax = plt.subplots(2, 2, figsize=(12, 6))
 
-ax[0,1].plot(signal_filtered[:3000])
-ax[0,1].set_title("Filtrelenmiş")
+ax[0, 0].plot(signal[:3000])
+ax[0, 0].set_title("Orijinal Sinyal")
 
-ax[1,0].plot(freq[:N//2], np.abs(Y[:N//2]))
-ax[1,0].set_xlim(0,2000)
+ax[0, 1].plot(signal_lowpass[:3000])
+ax[0, 1].set_title("Low-pass Filtrelenmiş")
 
-ax[1,1].plot(freq[:N//2], np.abs(Y_filtered[:N//2]))
-ax[1,1].set_xlim(0,2000)
+ax[1, 0].plot(freq[:N//2], np.abs(Y[:N//2]))
+ax[1, 0].set_title("Orijinal FFT")
+ax[1, 0].set_xlim(0, 2000)
+
+ax[1, 1].plot(freq[:N//2], np.abs(Y_filtered[:N//2]))
+ax[1, 1].set_title("Filtrelenmiş FFT")
+ax[1, 1].set_xlim(0, 2000)
 
 st.pyplot(fig)
 
-# Audio export
-temp1 = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
-sf.write(temp1.name, signal, fs)
+# -------------------
+# Audio helper
+# -------------------
+def save_audio(data):
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
+    sf.write(tmp.name, data, fs)
+    return tmp.name
 
-temp2 = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
-sf.write(temp2.name, signal_filtered, fs)
+# -------------------
+# SESLER (3 adet)
+# -------------------
+st.markdown("## 🔊 Ses Çıktıları")
 
-st.subheader("Orijinal Ses")
-st.audio(temp1.name)
+col1, col2, col3 = st.columns(3)
 
-st.subheader("Filtrelenmiş Ses")
-st.audio(temp2.name)
+with col1:
+    st.subheader("Orijinal")
+    st.audio(save_audio(signal))
+
+with col2:
+    st.subheader("Low-pass")
+    st.audio(save_audio(signal_lowpass))
+
+with col3:
+    st.subheader("High-pass")
+    st.audio(save_audio(signal_highpass))
