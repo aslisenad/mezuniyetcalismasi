@@ -2,104 +2,141 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fft import fft, fftfreq, ifft
-import soundfile as sf
 import tempfile
+import soundfile as sf
 
 # -------------------
-# Ayarlar
+# AYARLAR
 # -------------------
 fs = 44100
+note_duration = 0.4
+cutoff = 1000
 
-st.set_page_config(page_title="FFT Audio Filter", layout="centered")
-st.title("🎵 FFT Ses Filtreleme Uygulaması")
-
-# -------------------
-# UI
-# -------------------
-cutoff = st.slider("Cutoff Frekansı (Hz)", 100, 3000, 800)
-
-notes = [440, 523, 659, 523, 440]
-note_duration = 1
+st.set_page_config(page_title="FFT Melodi Analizi", layout="centered")
+st.title("🎵 FFT Melodi Karşılaştırma Uygulaması")
 
 # -------------------
-# Sinyal üretimi
+# MELODİ ÜRETİMİ
 # -------------------
-signal = np.array([])
+notes = [440, 494, 523, 587, 659, 587, 523, 494, 440]
+
+soft = np.array([])
+hard = np.array([])
 
 for f in notes:
-    t_note = np.linspace(0, note_duration, int(fs * note_duration), endpoint=False)
+    t = np.linspace(0, note_duration, int(fs * note_duration), endpoint=False)
 
-    note = (
-        np.sin(2*np.pi*f*t_note) +
-        0.4*np.sin(2*np.pi*2*f*t_note) +
-        0.2*np.sin(2*np.pi*3*f*t_note)
+    s = np.sin(2 * np.pi * f * t)
+
+    h = (
+        np.sin(2 * np.pi * f * t) +
+        0.6 * np.sin(2 * np.pi * 2 * f * t) +
+        0.35 * np.sin(2 * np.pi * 3 * f * t) +
+        0.2 * np.random.randn(len(t))
     )
 
-    signal = np.concatenate((signal, note))
+    soft = np.concatenate((soft, s))
+    hard = np.concatenate((hard, h))
 
-signal = signal / np.max(np.abs(signal))
+soft = soft / np.max(np.abs(soft))
+hard = hard / np.max(np.abs(hard))
 
 # -------------------
 # FFT
 # -------------------
-N = len(signal)
-Y = fft(signal)
-freq = fftfreq(N, 1/fs)
+N = len(hard)
+freq = fftfreq(N, 1 / fs)
 
-# Low-pass
-Y_filtered = Y.copy()
+Y_hard = fft(hard)
+
+Y_filtered = Y_hard.copy()
 Y_filtered[np.abs(freq) > cutoff] = 0
-signal_lowpass = np.real(ifft(Y_filtered))
 
-# High-pass
-signal_highpass = signal - signal_lowpass
+hard_filtered = np.real(ifft(Y_filtered))
+hard_filtered = hard_filtered / np.max(np.abs(hard_filtered))
 
 # -------------------
-# Grafik (küçültülmüş)
+# FFT helper
 # -------------------
-fig, ax = plt.subplots(2, 2, figsize=(7, 3.5))
+def get_fft(signal):
+    Y = fft(signal)
+    return freq[:N // 2], np.abs(Y[:N // 2]) / N
 
-ax[0, 0].plot(signal[:3000])
-ax[0, 0].set_title("Orijinal")
+f_soft, m_soft = get_fft(soft)
+f_hard, m_hard = get_fft(hard)
+f_filt, m_filt = get_fft(hard_filtered)
 
-ax[0, 1].plot(signal_lowpass[:3000])
-ax[0, 1].set_title("Low-pass")
+# -------------------
+# GRAFİK
+# -------------------
+st.subheader("📊 FFT Karşılaştırma Grafiği")
 
-ax[1, 0].plot(freq[:N//2], np.abs(Y[:N//2]))
-ax[1, 0].set_xlim(0, 2000)
-ax[1, 0].set_title("FFT Orijinal")
+fig, ax = plt.subplots(figsize=(8, 4))
 
-ax[1, 1].plot(freq[:N//2], np.abs(Y_filtered[:N//2]))
-ax[1, 1].set_xlim(0, 2000)
-ax[1, 1].set_title("FFT Filtreli")
+ax.plot(f_soft, m_soft, label="Yumuşak Melodi", color="blue")
+ax.plot(f_hard, m_hard, label="Sert Melodi", color="red", alpha=0.7)
+ax.plot(f_filt, m_filt, label="Filtrelenmiş Sert Melodi", color="green")
 
-plt.tight_layout()
+ax.axvline(cutoff, color="black", linestyle="--", label="Cutoff = 1000 Hz")
+
+ax.set_xlim(0, 2500)
+ax.set_xlabel("Frekans (Hz)")
+ax.set_ylabel("Genlik")
+ax.set_title("FFT Karşılaştırması")
+ax.legend()
+ax.grid(True)
 
 st.pyplot(fig)
 
 # -------------------
-# Audio helper
+# AUDIO EXPORT
 # -------------------
 def save_audio(data):
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
     sf.write(tmp.name, data, fs)
     return tmp.name
 
-# -------------------
-# SESLER
-# -------------------
-st.markdown("## 🔊 Ses Çıktıları")
+st.subheader("🔊 Sesler")
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.subheader("Orijinal")
-    st.audio(save_audio(signal))
+    st.write("Yumuşak")
+    st.audio(save_audio(soft))
 
 with col2:
-    st.subheader("Low-pass")
-    st.audio(save_audio(signal_lowpass))
+    st.write("Sert")
+    st.audio(save_audio(hard))
 
 with col3:
-    st.subheader("High-pass")
-    st.audio(save_audio(signal_highpass))
+    st.write("Filtrelenmiş")
+    st.audio(save_audio(hard_filtered))
+
+# -------------------
+# ANİMASYON (STREAMLIT VERSION)
+# -------------------
+st.subheader("🎞️ FFT Değişim Görselleştirme")
+
+fig2, ax2 = plt.subplots(figsize=(8, 4))
+
+data = [
+    (f_soft, m_soft, "Yumuşak", "blue"),
+    (f_hard, m_hard, "Sert", "red"),
+    (f_filt, m_filt, "Filtrelenmiş", "green"),
+]
+
+choice = st.selectbox("Görselleştir:", ["Yumuşak", "Sert", "Filtrelenmiş"])
+
+if choice == "Yumuşak":
+    x, y = f_soft, m_soft
+elif choice == "Sert":
+    x, y = f_hard, m_hard
+else:
+    x, y = f_filt, m_filt
+
+ax2.plot(x, y, color="purple")
+ax2.set_xlim(0, 2500)
+ax2.set_title(f"{choice} FFT")
+ax2.grid(True)
+
+st.pyplot(fig2)
