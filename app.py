@@ -116,18 +116,25 @@ st.pyplot(fig3)
 st.audio(save_audio(hard_filtered))
 
 # =========================================================
-# 🖼️ GÖRSEL FFT (KÜÇÜLTÜLDÜ)
+# 🖼️ GÖRSEL FFT (SUNUM İÇİN DÜZELTİLDİ)
 # =========================================================
 st.markdown("## 🖼️ Görüntü FFT Analizi")
 
-uploaded = st.file_uploader("Görsel yükle", type=["jpg", "png"])
-radius = st.slider("Radius", 5, 150, 45)
+# 1. Önce yükleme butonunu gösterelim
+uploaded = st.file_uploader("Analiz için bir görsel yükleyin", type=["jpg", "png"])
 
-if uploaded is not None:
-    image_rgb = io.imread(uploaded)
-else:
-    st.info("Varsayılan görsel kullanılıyor")
-    image_rgb = io.imread("ataturk.jpg")
+# 2. Eğer henüz bir görsel yüklenmemişse, buraya bir uyarı yazalım ve durduralım.
+if uploaded is None:
+    st.warning("👉 Lütfen analiz yapabilmek için yukarıdaki butonu kullanarak bilgisayarınızdan bir görsel (.jpg veya .png) yükleyin.")
+    # st.stop() komutu, kodun geri kalanını çalıştırmaz, böylece site çökmez,
+    # sadece yükleme uyarısını göstererek bekler.
+    st.stop()
+
+# 3. Kod buraya geldiyse, kesinlikle bir dosya yüklenmiştir.
+radius = st.slider("Filtre Yarıçapı (Radius)", 5, 150, 45)
+
+# Yüklenen dosyayı okuyalım (Hata riski yok, çünkü 'if uploaded is None' kontrolü yaptık)
+image_rgb = io.imread(uploaded)
 
 if image_rgb.ndim == 3:
     image_gray = color.rgb2gray(image_rgb)
@@ -136,6 +143,7 @@ else:
 
 image = img_as_float(image_gray)
 
+# --- Buradan sonrası sizin orijinal kodunuzun devamıdır ---
 F = fft2(image)
 F_shifted = fftshift(F)
 
@@ -146,37 +154,39 @@ Y, X = np.ogrid[:rows, :cols]
 distance = np.sqrt((X - ccol)**2 + (Y - crow)**2)
 
 islem = st.selectbox(
-    "İşlem",
-    ["Orijinal", "FFT", "Low-Pass", "High-Pass", "Low-Pass Sonuç", "High-Pass Sonuç"]
+    "Gerçekleştirilecek İşlem",
+    ["Orijinal Görsel", "FFT Spektrumu", "Low-Pass Filtre Maskesi", "High-Pass Filtre Maskesi", "Low-Pass Uygulanmış Sonuç", "High-Pass Uygulanmış Sonuç"]
 )
 
-if islem == "Orijinal":
+if islem == "Orijinal Görsel":
     result = image
 
-elif islem == "FFT":
+elif islem == "FFT Spektrumu":
     result = np.log(1 + np.abs(F_shifted))
 
-elif islem == "Low-Pass":
+elif islem == "Low-Pass Filtre Maskesi":
     mask = distance <= radius
     result = np.log(1 + np.abs(F_shifted * mask))
 
-elif islem == "High-Pass":
+elif islem == "High-Pass Filtre Maskesi":
     mask = distance > radius
     result = np.log(1 + np.abs(F_shifted * mask))
 
-elif islem == "Low-Pass Sonuç":
+elif islem == "Low-Pass Uygulanmış Sonuç":
     mask = distance <= radius
     img = np.real(ifft2(ifftshift(F_shifted * mask)))
-    result = (img - img.min()) / (img.max() - img.min())
+    # Sonucu normalize et
+    result = (img - img.min()) / (img.max() - img.min()) if img.max() > img.min() else img
 
-elif islem == "High-Pass Sonuç":
+elif islem == "High-Pass Uygulanmış Sonuç":
     mask = distance > radius
     img = np.real(ifft2(ifftshift(F_shifted * mask)))
-    result = (img - img.min()) / (img.max() - img.min())
+    # Sonucu normalize et
+    result = (img - img.min()) / (img.max() - img.min()) if img.max() > img.min() else img
 
-# 🔧 KÜÇÜLTÜLMÜŞ GÖRSEL
-fig, ax = plt.subplots(figsize=(2.8, 2.8), dpi=120)
+# 🔧 GÖRSELİ GÖSTER
+fig, ax = plt.subplots(figsize=(4, 4), dpi=100) # Biraz daha büyütüldü
 ax.imshow(result, cmap="gray")
 ax.axis("off")
-
+st.pyplot(fig, use_container_width=False)
 st.pyplot(fig, use_container_width=False)
