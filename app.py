@@ -18,7 +18,7 @@ def get_base64_of_bin_file(bin_file):
     return base64.b64encode(data).decode()
 
 # ⚠️ BURAYA KENDİ GÖRSELİNİN ADINI VE UZANTISINI YAZ (Birebir aynı olmalı)
-arkaplan_gorseli = "arkaplan.jpg" 
+arkaplan_gorseli = "arkaplan.JPG" 
 
 try:
     bin_str = get_base64_of_bin_file(arkaplan_gorseli)
