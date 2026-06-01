@@ -9,60 +9,6 @@ import soundfile as sf
 
 
 
-import base64
-
-# Görseli internet sitesinin anlayacağı formata (base64) çeviren fonksiyon
-def get_base64_of_bin_file(bin_file):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
-
-# ⚠️ BURAYA KENDİ GÖRSELİNİN ADINI VE UZANTISINI YAZ (Birebir aynı olmalı)
-arkaplan_gorseli = "arkaplan.JPG" 
-
-try:
-    bin_str = get_base64_of_bin_file(arkaplan_gorseli)
-    arkaplan_css = f"""
-    <style>
-    /* Arka plan görseli ayarları */
-    [data-testid="stAppViewContainer"] {{
-        background-image: url("data:image/jpeg;base64,{bin_str}");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-    }}
-
-    /* Yazıların okunması için beyaz şeffaf panel */
-    [data-testid="stMainBlockContainer"] {{
-        background-color: rgba(255, 255, 255, 0.92);
-        padding: 3rem;
-        border-radius: 15px;
-        box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
-    }}
-    </style>
-    """
-    st.markdown(arkaplan_css, unsafe_allow_html=True)
-except FileNotFoundError:
-    # Eğer görsel henüz GitHub'a yüklenmediyse site çökmesin diye güvenlik önlemi
-    st.warning(f"Arka plan görseli ({arkaplan_gorseli}) proje klasöründe bulunamadı.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # -------------------
 # AYARLAR
 # -------------------
