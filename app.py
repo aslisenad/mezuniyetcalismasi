@@ -189,4 +189,3 @@ fig, ax = plt.subplots(figsize=(4, 4), dpi=100) # Biraz daha büyütüldü
 ax.imshow(result, cmap="gray")
 ax.axis("off")
 st.pyplot(fig, use_container_width=False)
-st.pyplot(fig, use_container_width=False)
